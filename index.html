@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>オンデマンド面付け</title>
+<style>
+:root{
+  --bg:#f5f6f8;--card:#fff;--ink:#1d2330;--sub:#5b6475;--line:#d9dde5;
+  --accent:#1f6feb;--accent-weak:#e7f0ff;--warn:#b54708;--warn-bg:#fff4e5;
+  --ng:#c4314b;--ok:#137333;
+  --paper:#ffffff;--dead:#f3c9cf;--bleed:#cfe0ff;--trim:#5b8def;--trim-fill:#e9f1ff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:14px;line-height:1.5}
+header{padding:14px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:18px}
+header p{margin:2px 0 0;color:var(--sub);font-size:12px}
+main{display:grid;grid-template-columns:340px 1fr;gap:16px;padding:16px;max-width:1400px;margin:0 auto}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:14px;color:var(--sub);font-weight:600}
+label{display:block;font-size:12px;color:var(--sub);margin:8px 0 3px}
+select,input[type=number]{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;background:#fff;color:var(--ink)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;padding:7px 4px;border:0;background:#fff;color:var(--ink);font-size:13px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:#fff}
+.chk{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:var(--ink)}
+.note{font-size:12px;color:var(--sub);margin-top:6px}
+.result-top{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.big{flex:1 1 160px;background:var(--accent-weak);border-radius:10px;padding:12px 14px}
+.big .k{font-size:12px;color:var(--sub)}
+.big .v{font-size:30px;font-weight:700;color:var(--accent)}
+.big .v small{font-size:14px;font-weight:600;margin-left:2px}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:12px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.stat .k{font-size:11px;color:var(--sub)}
+.stat .v{font-size:16px;font-weight:600}
+.msgs div{margin-top:8px;padding:8px 10px;border-radius:6px;font-size:13px}
+.msgs .warn{background:var(--warn-bg);color:var(--warn)}
+.msgs .ng{background:#fde8ec;color:var(--ng)}
+.alt{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.alt button,.btn{padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:var(--ink)}
+.alt button.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+#preview{width:100%;height:auto;display:block;background:#eef0f4;border-radius:8px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--sub);margin-top:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:-2px;border:1px solid #0002}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>オンデマンド面付けシミュレーター</h1>
+  <p>Revoria Press SC285S 用｜丁付け数・通し枚数・クリック数を計算</p>
+</header>
+<main>
+<section>
+  <div class="card">
+    <h2>用紙</h2>
+    <label>用紙サイズ</label>
+    <select id="paper">
+      <option value="a3nobi">A3ノビ 330×488mm（トレイ1〜3）</option>
+      <option value="a3">A3 297×420mm</option>
+      <option value="long660">長尺 330×660mm（手差しトレイ）</option>
+      <option value="custom">カスタム</option>
+    </select>
+    <div class="row" id="paperCustom" hidden>
+      <div><label>短辺（幅）mm</label><input type="number" id="pS" value="330" min="90" max="330"></div>
+      <div><label>長辺（送り方向）mm</label><input type="number" id="pL" value="488" min="146" max="1300"></div>
+    </div>
+    <label>印刷不可の余白（像欠け幅）mm</label>
+    <div class="row4">
+      <div><label>先端</label><input type="number" id="mLead" value="4" min="0" step="0.5"></div>
+      <div><label>後端</label><input type="number" id="mTrail" value="2" min="0" step="0.5"></div>
+      <div><label>奥側</label><input type="number" id="mBack" value="2" min="0" step="0.5"></div>
+      <div><label>手前側</label><input type="number" id="mFront" value="2" min="0" step="0.5"></div>
+    </div>
+    <div class="note">初期値はSC285Sの公式仕様（先端4.0／後端2.0／手前2.0／奥2.0mm）</div>
+  </div>
+
+  <div class="card">
+    <h2>仕上がり</h2>
+    <label>商品</label>
+    <select id="product">
+      <option value="meishi">名刺・ショップカード 91×55</option>
+      <option value="postcard">ハガキ・ポストカード 100×148</option>
+      <option value="a4">チラシ A4 210×297</option>
+      <option value="a5">チラシ A5 148×210</option>
+      <option value="a6">チラシ A6 105×148</option>
+      <option value="b5">チラシ B5 182×257</option>
+      <option value="b6">チラシ B6 128×182</option>
+      <option value="fold2a4">二つ折りA4（展開A3 420×297）</option>
+      <option value="fold2a5">二つ折りA5（展開A4 297×210）</option>
+      <option value="fold3a4">三つ折りA4（展開A4 297×210）</option>
+      <option value="custom">カスタム</option>
+    </select>
+    <div class="row">
+      <div><label>幅 mm</label><input type="number" id="fW" value="91" min="1"></div>
+      <div><label>高さ mm</label><input type="number" id="fH" value="55" min="1"></div>
+    </div>
+    <div class="note">パンフは展開サイズで面付けします（折り加工は料金側で加算予定）</div>
+  </div>
+
+  <div class="card">
+    <h2>塗り足し・トンボ</h2>
+    <div class="row">
+      <div><label>塗り足し mm</label><input type="number" id="bleed" value="3" min="0" step="0.5"></div>
+      <div><label>絵柄間の追加隙間 mm</label><input type="number" id="gap" value="0" min="0" step="0.5"></div>
+    </div>
+    <label>トンボ</label>
+    <div class="seg" id="tombo">
+      <button data-v="none">なし</button>
+      <button data-v="outer">外トンボ</button>
+      <button data-v="each" class="on">個別トンボ</button>
+    </div>
+    <label>トンボ幅（仕上がり線から外側）mm</label>
+    <input type="number" id="tomboW" value="10" min="0" step="0.5">
+    <div class="note">外トンボ＝面付け全体の外周だけに付ける／個別トンボ＝絵柄ごとに付ける</div>
+  </div>
+
+  <div class="card">
+    <h2>配置</h2>
+    <label>絵柄の向き</label>
+    <div class="seg" id="orient">
+      <button data-v="auto" class="on">自動（最大）</button>
+      <button data-v="normal">そのまま</button>
+      <button data-v="rotate">90°回転</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="manual"> 列×行を手動で指定</label>
+    <div class="row" id="manualBox" hidden>
+      <div><label>列（横）</label><input type="number" id="cols" value="2" min="1"></div>
+      <div><label>行（縦）</label><input type="number" id="rows" value="2" min="1"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="center" checked> 印刷可能範囲の中央に配置</label>
+  </div>
+
+  <div class="card">
+    <h2>部数</h2>
+    <div class="row">
+      <div><label>仕上がり部数</label><input type="number" id="qty" value="100" min="0"></div>
+      <div><label>予備（ヤレ）枚数</label><input type="number" id="spare" value="0" min="0"></div>
+    </div>
+    <label>印刷面</label>
+    <div class="seg" id="sides">
+      <button data-v="1" class="on">片面</button>
+      <button data-v="2">両面</button>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="card">
+    <div class="result-top">
+      <div class="big"><div class="k">丁付け数</div><div class="v" id="rN">-<small>丁</small></div></div>
+      <div class="big"><div class="k">通し枚数（予備込み）</div><div class="v" id="rSheets">-<small>枚</small></div></div>
+      <div class="big"><div class="k">クリック数</div><div class="v" id="rClicks">-<small>面</small></div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">配置</div><div class="v" id="rLayout">-</div></div>
+      <div class="stat"><div class="k">絵柄の向き</div><div class="v" id="rOrient">-</div></div>
+      <div class="stat"><div class="k">歩留まり（仕上がり面積÷用紙）</div><div class="v" id="rYield">-</div></div>
+      <div class="stat"><div class="k">印刷可能範囲</div><div class="v" id="rPrintable">-</div></div>
+      <div class="stat"><div class="k">余白 先端／後端</div><div class="v" id="rSpaceX">-</div></div>
+      <div class="stat"><div class="k">余白 奥／手前</div><div class="v" id="rSpaceY">-</div></div>
+    </div>
+    <div class="alt" id="alt"></div>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <h2 style="margin:0">プレビュー（左が先端＝送り方向）</h2>
+      <button class="btn primary" id="dl">PNGで保存</button>
+    </div>
+    <svg id="preview" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="legend">
+      <span><i style="background:var(--dead)"></i>印刷不可（像欠け）</span>
+      <span><i style="background:var(--bleed)"></i>塗り足し</span>
+      <span><i style="background:var(--trim-fill);border-color:var(--trim)"></i>仕上がり</span>
+      <span><i style="background:#fff;border:1px dashed #888"></i>印刷可能範囲</span>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+const PAPERS = {
+  a3nobi:{L:488,S:330}, a3:{L:420,S:297}, long660:{L:660,S:330}
+};
+const PRODUCTS = {
+  meishi:[91,55], postcard:[100,148], a4:[210,297], a5:[148,210], a6:[105,148],
+  b5:[182,257], b6:[128,182], fold2a4:[420,297], fold2a5:[297,210], fold3a4:[297,210]
+};
+const $ = id => document.getElementById(id);
+const num = id => { const v = parseFloat($(id).value); return isNaN(v) ? 0 : v; };
+const state = { tombo:'each', orient:'auto', sides:1, pick:null };
+
+function segInit(id, key, cast){
+  $(id).querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      $(id).querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      state[key] = cast ? cast(b.dataset.v) : b.dataset.v;
+      if(key==='orient') state.pick=null;
+      render();
+    });
+  });
+}
+segInit('tombo','tombo'); segInit('orient','orient'); segInit('sides','sides',Number);
+
+$('paper').addEventListener('change',()=>{
+  const v=$('paper').value;
+  $('paperCustom').hidden = v!=='custom';
+  if(PAPERS[v]){ $('pS').value=PAPERS[v].S; $('pL').value=PAPERS[v].L; }
+  render();
+});
+$('product').addEventListener('change',()=>{
+  const p=PRODUCTS[$('product').value];
+  if(p){ $('fW').value=p[0]; $('fH').value=p[1]; }
+  state.pick=null; render();
+});
+['fW','fH'].forEach(id=>$(id).addEventListener('input',()=>{ $('product').value='custom'; state.pick=null; render(); }));
+$('manual').addEventListener('change',()=>{ $('manualBox').hidden=!$('manual').checked; render(); });
+document.querySelectorAll('input').forEach(el=>{
+  if(!['fW','fH','manual'].includes(el.id)) el.addEventListener('input',render);
+});
+
+function paperSize(){
+  const v=$('paper').value;
+  if(PAPERS[v]) return {L:PAPERS[v].L,S:PAPERS[v].S};
+  return {L:num('pL'),S:num('pS')};
+}
+
+// 1方向分の計算
+function calc(rot, P, M, opt){
+  const iw = rot ? opt.fH : opt.fW;   // 用紙上の横（送り方向）
+  const ih = rot ? opt.fW : opt.fH;
+  let cw, ch, ext;
+  if(opt.tombo==='each'){ const t=Math.max(opt.tomboW,opt.bleed); cw=iw+2*t; ch=ih+2*t; ext=0; }
+  else { cw=iw+2*opt.bleed; ch=ih+2*opt.bleed; ext = opt.tombo==='outer' ? Math.max(opt.tomboW-opt.bleed,0) : 0; }
+  const availW = P.L - M.lead - M.trail;
+  const availH = P.S - M.back - M.front;
+  const g = opt.gap;
+  const fitCols = Math.max(0, Math.floor((availW - 2*ext + g + 1e-9)/(cw+g)));
+  const fitRows = Math.max(0, Math.floor((availH - 2*ext + g + 1e-9)/(ch+g)));
+  return {rot, iw, ih, cw, ch, ext, availW, availH, fitCols, fitRows, n:fitCols*fitRows};
+}
+
+function render(){
+  const P = paperSize();
+  const M = {lead:num('mLead'), trail:num('mTrail'), back:num('mBack'), front:num('mFront')};
+  const opt = {fW:num('fW'), fH:num('fH'), bleed:num('bleed'), gap:num('gap'), tombo:state.tombo, tomboW:num('tomboW')};
+  const msgs = [];
+
+  // 用紙チェック（SC285S公式仕様）
+  if(P.S>330) msgs.push(['ng','用紙幅が330mmを超えています（SC285Sの最大幅は330mm）']);
+  if(P.L>1300) msgs.push(['ng','用紙長が1,300mmを超えています（手差しトレイ最大）']);
+  if(P.L>488) msgs.push(['warn','長さ488mm超の長尺用紙です。手差しトレイ（オプション）と対応する給紙排紙オプションが必要']);
+  if(P.L>660 && state.sides===2) msgs.push(['ng','自動両面印刷は330×660mmまで']);
+  if(P.L<=488 && (P.S<140 || P.L<182)) msgs.push(['warn','トレイ1〜3の最小は140×182mm。これより小さい用紙は手差しトレイ（90×146mm〜）']);
+
+  const A = calc(false,P,M,opt), B = calc(true,P,M,opt);
+  let cur;
+  if(state.orient==='normal') cur=A;
+  else if(state.orient==='rotate') cur=B;
+  else cur = state.pick!==null ? (state.pick?B:A) : (B.n>A.n ? B : A);
+
+  let cols=cur.fitCols, rows=cur.fitRows;
+  if($('manual').checked){
+    cols=Math.max(1,Math.floor(num('cols'))); rows=Math.max(1,Math.floor(num('rows')));
+    if(cols>cur.fitCols || rows>cur.fitRows) msgs.push(['ng',`${cols}×${rows} は印刷可能範囲に入りません（この向きの最大は ${cur.fitCols}×${cur.fitRows}）`]);
+  }
+  const n = cols*rows;
+  const g = opt.gap;
+  const blockW = cols>0 ? cols*cur.cw+(cols-1)*g+2*cur.ext : 0;
+  const blockH = rows>0 ? rows*cur.ch+(rows-1)*g+2*cur.ext : 0;
+  let x0, y0;
+  if($('center').checked){ x0 = M.lead + (cur.availW-blockW)/2; y0 = M.back + (cur.availH-blockH)/2; }
+  else { x0 = M.lead; y0 = M.back; }
+
+  if(cur.n===0 && !$('manual').checked) msgs.push(['ng','この用紙では1丁も入りません。用紙サイズ・塗り足し・トンボ幅を見直してください']);
+  if(opt.tombo==='each' && opt.tomboW<opt.bleed) msgs.push(['warn','トンボ幅が塗り足しより小さいため、塗り足し幅で計算しています']);
+
+  const qty=Math.max(0,Math.floor(num('qty'))), spare=Math.max(0,Math.floor(num('spare')));
+  const sheets = n>0 ? Math.ceil(qty/n)+spare : 0;
+  const clicks = sheets*state.sides;
+  const yieldPct = n>0 ? (opt.fW*opt.fH*n)/(P.L*P.S)*100 : 0;
+  const f = v => (Math.round(v*10)/10).toLocaleString();
+
+  $('rN').innerHTML = `${n}<small>丁</small>`;
+  $('rSheets').innerHTML = `${sheets.toLocaleString()}<small>枚</small>`;
+  $('rClicks').innerHTML = `${clicks.toLocaleString()}<small>面</small>`;
+  $('rLayout').textContent = `${cols}列 × ${rows}行`;
+  $('rOrient').textContent = cur.rot ? `90°回転（${opt.fH}×${opt.fW}）` : `そのまま（${opt.fW}×${opt.fH}）`;
+  $('rYield').textContent = n>0 ? `${f(yieldPct)}%` : '-';
+  $('rPrintable').textContent = `${f(cur.availW)}×${f(cur.availH)}mm`;
+  $('rSpaceX').textContent = n>0 ? `${f(x0)}／${f(P.L-x0-blockW)}mm` : '-';
+  $('rSpaceY').textContent = n>0 ? `${f(y0)}／${f(P.S-y0-blockH)}mm` : '-';
+
+  // 別パターン
+  const alt = $('alt'); alt.innerHTML='';
+  if(state.orient==='auto' && !$('manual').checked){
+    [[A,'そのまま'],[B,'90°回転']].forEach(([r,lab])=>{
+      const b=document.createElement('button');
+      b.textContent=`${lab}：${r.n}丁（${r.fitCols}×${r.fitRows}）`;
+      if(r===cur) b.classList.add('on');
+      b.onclick=()=>{ state.pick=r.rot; render(); };
+      alt.appendChild(b);
+    });
+  }
+  $('msgs').innerHTML = msgs.map(([c,t])=>`<div class="${c}">${t}</div>`).join('');
+
+  drawSVG(P,M,cur,opt,cols,rows,x0,y0,blockW,blockH);
+}
+
+function drawSVG(P,M,c,opt,cols,rows,x0,y0,bw,bh){
+  const pad = 22;
+  const W=P.L, H=P.S;
+  const svg=$('preview');
+  svg.setAttribute('viewBox',`${-pad} ${-pad} ${W+pad*2} ${H+pad*2}`);
+  const sw = Math.max(W,H)/600; // 線幅の基準
+  let s='';
+  s+=`<defs><pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="#f3c9cf"/><line x1="0" y1="0" x2="0" y2="4" stroke="#e39aa6" stroke-width="1.2"/></pattern></defs>`;
+  s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff" stroke="#333" stroke-width="${sw*1.5}"/>`;
+  // 像欠け
+  s+=`<rect x="0" y="0" width="${M.lead}" height="${H}" fill="url(#hatch)"/>`;
+  s+=`<rect x="${W-M.trail}" y="0" width="${M.trail}" height="${H}" fill="url(#hatch)"/>`;
+  s+=`<rect x="0" y="0" width="${W}" height="${M.back}" fill="url(#hatch)"/>`;
+  s+=`<rect x="0" y="${H-M.front}" width="${W}" height="${M.front}" fill="url(#hatch)"/>`;
+  s+=`<rect x="${M.lead}" y="${M.back}" width="${c.availW}" height="${c.availH}" fill="none" stroke="#888" stroke-dasharray="${sw*5} ${sw*4}" stroke-width="${sw}"/>`;
+
+  const g=opt.gap;
+  const ext=c.ext;
+  const t = opt.tombo==='each' ? Math.max(opt.tomboW,opt.bleed) : opt.bleed;
+  const markLen = Math.max(opt.tomboW - opt.bleed, 2);
+  const marks=[];
+  for(let j=0;j<rows;j++){
+    for(let i=0;i<cols;i++){
+      const cx = x0+ext+i*(c.cw+g), cy = y0+ext+j*(c.ch+g);
+      const tx = cx+t, ty = cy+t;   // 仕上がり左上
+      const b = opt.bleed;
+      s+=`<rect x="${tx-b}" y="${ty-b}" width="${c.iw+2*b}" height="${c.ih+2*b}" fill="#cfe0ff"/>`;
+      s+=`<rect x="${tx}" y="${ty}" width="${c.iw}" height="${c.ih}" fill="#e9f1ff" stroke="#5b8def" stroke-width="${sw}"/>`;
+      const fs=Math.min(c.iw,c.ih)*0.28;
+      s+=`<text x="${tx+c.iw/2}" y="${ty+c.ih/2}" font-size="${Math.min(fs,24)}" fill="#5b8def" text-anchor="middle" dominant-baseline="central" font-family="sans-serif">${j*cols+i+1}</text>`;
+      if(opt.tombo==='each') marks.push([tx,ty,c.iw,c.ih]);
+    }
+  }
+  // トンボ（簡易表示：仕上がり線の延長）
+  const drawMarks=(x,y,w,h)=>{
+    const b=opt.bleed, L=markLen, st=`stroke="#222" stroke-width="${sw*0.8}"`;
+    [[x,y,-1,-1],[x+w,y,1,-1],[x,y+h,-1,1],[x+w,y+h,1,1]].forEach(([px,py,dx,dy])=>{
+      s+=`<line x1="${px+dx*b}" y1="${py}" x2="${px+dx*(b+L)}" y2="${py}" ${st}/>`;
+      s+=`<line x1="${px}" y1="${py+dy*b}" x2="${px}" y2="${py+dy*(b+L)}" ${st}/>`;
+    });
+  };
+  if(opt.tombo==='each') marks.forEach(m=>drawMarks(...m));
+  if(opt.tombo==='outer' && cols>0 && rows>0){
+    const ix=x0+ext+opt.bleed, iy=y0+ext+opt.bleed;
+    const iw=bw-2*ext-2*opt.bleed, ih=bh-2*ext-2*opt.bleed;
+    drawMarks(ix,iy,iw,ih);
+  }
+  // ラベル
+  const fsz = Math.max(W,H)/40;
+  s+=`<text x="${-pad/2}" y="${H/2}" font-size="${fsz}" fill="#c4314b" text-anchor="middle" transform="rotate(-90 ${-pad/2} ${H/2})" font-family="sans-serif">先端 ▶ 送り方向</text>`;
+  s+=`<text x="${W/2}" y="${-pad/2.6}" font-size="${fsz}" fill="#555" text-anchor="middle" font-family="sans-serif">奥側　${W}×${H}mm</text>`;
+  s+=`<text x="${W/2}" y="${H+pad/1.4}" font-size="${fsz}" fill="#555" text-anchor="middle" font-family="sans-serif">手前側</text>`;
+  s+=`<text x="${W+pad/2}" y="${H/2}" font-size="${fsz}" fill="#555" text-anchor="middle" transform="rotate(90 ${W+pad/2} ${H/2})" font-family="sans-serif">後端</text>`;
+  svg.innerHTML=s;
+}
+
+$('dl').addEventListener('click',()=>{
+  const svg=$('preview');
+  const vb=svg.viewBox.baseVal;
+  const scale=2400/Math.max(vb.width,vb.height);
+  const clone=svg.cloneNode(true);
+  clone.setAttribute('width',vb.width*scale); clone.setAttribute('height',vb.height*scale);
+  const data=new XMLSerializer().serializeToString(clone);
+  const img=new Image();
+  img.onload=()=>{
+    const cv=document.createElement('canvas');
+    cv.width=vb.width*scale; cv.height=vb.height*scale;
+    const ctx=cv.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.drawImage(img,0,0);
+    const a=document.createElement('a');
+    a.download=`面付け_${$('fW').value}x${$('fH').value}_${$('rN').textContent}.png`;
+    a.href=cv.toDataURL('image/png'); a.click();
+  };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(data);
+});
+
+render();
+</script>
+</body>
+</html>
