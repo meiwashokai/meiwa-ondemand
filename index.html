@@ -64,6 +64,7 @@ select,input[type=number]{width:100%;padding:7px 8px;border:1px solid var(--line
     <label>用紙サイズ</label>
     <select id="paper">
       <option value="a3nobi">A3ノビ 330×488mm（トレイ1〜3）</option>
+      <option value="kiku4">菊判四截 469×318mm</option>
       <option value="a3">A3 297×420mm</option>
       <option value="long660">長尺 330×660mm（手差しトレイ）</option>
       <option value="custom">カスタム</option>
@@ -189,7 +190,7 @@ select,input[type=number]{width:100%;padding:7px 8px;border:1px solid var(--line
 
 <script>
 const PAPERS = {
-  a3nobi:{L:488,S:330}, a3:{L:420,S:297}, long660:{L:660,S:330}
+  a3nobi:{L:488,S:330}, kiku4:{L:469,S:318}, a3:{L:420,S:297}, long660:{L:660,S:330}
 };
 const PRODUCTS = {
   meishi:[91,55], postcard:[100,148], a4:[210,297], a5:[148,210], a6:[105,148],
